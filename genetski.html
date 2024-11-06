@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Display</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f4f4f4;
+            color: #333;
+            padding: 20px;
+        }
+        pre {
+            background-color: #2e2e2e;
+            color: #f8f8f8;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        code {
+            color: #f8f8f8;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Code Display</h1>
+
+    <pre><code>
+function calculateFitness!(entity1, fitValue)
+    entity1.fitness = 0
+    for i in 1:length(entity1.genes)
+         entity1.fitness += entity1.genes[i]
+        end
+    entity1.fitness = abs(entity1.fitness-fitValue)
+end
+
+function crossover!(entity1, entity2, crossoverPoint)
+    for i in 1:crossoverPoint
+        x = entity1.genes[i]
+        entity1.genes[i] = entity2.genes[i]
+        entity2.genes[i] = x
+    end
+end
+
+function mutate!(entity1, mutationPercentage)
+    if rand(Float64)<mutationPercentage
+        mutationPoint = rand(1:length(entity1.genes))
+        entity1.genes[mutationPoint] = 1 - entity1.genes[mutationPoint]
+    end
+end
+
+function generatePopulation(n, genesLength)
+    data = []
+    for i in 1:n
+        entity1 = generateEntity(genesLength)
+        push!(data, entity1)
+    end
+    return data
+end
+
+function printPopulation(data)
+    for i in 1:length(data)
+         printEntity(data[i])
+    end
+end
+
+function selectPopulation(data, n)
+    return deepcopy(data[1:n])
+end
+
+function calculatePopulationFitness!(data, fitValue)
+    for i in 1:length(data)
+        calculateFitness!(data[i], fitValue)
+    end
+    sort!(data, by = d -> d.fitness, rev=false)
+end
+
+function crossoverPopulation(data, crossoverPoint)
+    newData = []
+    for i in 1:length(data)
+        for j in 1:length(data)
+            entity1 = deepcopy(data[i])
+            entity2 = deepcopy(data[j])
+            crossover!(entity1, entity2, crossoverPoint)
+            push!(newData, entity1)
+            push!(newData, entity2)
+        end
+    end
+    return newData
+end
+
+function mutatePopulation!(data, mutationPercentage)
+    for i in 1:length(data)
+        mutate!(data[i], mutationPercentage)
+    end;
+end
+
+function converge(bestFits, repeatSize, totalRepeatSize)
+    len = length(bestFits)
+    if bestFits[len]==0
+        return true
+    elseif len<=repeatSize
+        return false
+    elseif len>totalRepeatSize
+        return true
+    else
+        for i in len-repeatSize+1:len-1
+            if bestFits[i]!=bestFits[len]
+                return false
+            end
+        end
+    return true
+    end
+end
+
+function geneticAlgorithm!(data, elitePercentage, crossoverPoint, mutationPercentage)
+    calculatePopulationFitness!(data)
+    populationSize = length(data)
+    eliteSize = Int(trunc(elitePercentage*populationSize))
+    eliteSize = eliteSize+(populationSize-eliteSize)%2
+    bestFits = [data[1].fitness]
+    while !converge(bestFits)
+        elite = deepcopy(selectPopulation(data, eliteSize))
+        data = selectPopulation(data, populationSize-eliteSize)
+        data = crossoverPopulation(data, crossoverPoint)
+        mutatePopulation!(data, mutationPercentage)
+        data = [data; elite]
+        calculatePopulationFitness!(data)
+        bestFits = [bestFits; data[1].fitness]
+    end
+    return length(bestFits), data
+end
+
+function calculateAverage(data, elitePercentage, crossoverPoint, mutationPercentage, num)
+    averageGen = 0.0
+    averageFit = 0.0
+    for i in 1:num
+        gen, pop = geneticAlgorithm!(data, elitePercentage, crossoverPoint, mutationPercentage)
+        averageGen += gen
+        averageFit += pop[1].fitness
+    end
+    averageGen = averageGen / num
+    averageFit = averageFit / num
+    return averageGen, averageFit
+end
+
+function findBestElitePercentage(data, eliteRange, crossoverPoint, mutationPercentage, num)
+   resultsFit = [];
+   resultsGen = [];
+   for elitePercentage in eliteRange
+       dataCopy = deepcopy(data)
+       averageGen, averageFit = calculateAverage(dataCopy, elitePercentage, crossoverPoint, mutationPercentage, num)
+        push!(resultsFit, averageFit)
+       push!(resultsGen, averageGen)
+   end
+   minIndex = argmin(resultsFit)
+   optimalValue = resultsFit[minIndex]
+   return minIndex, optimalValue, resultsFit, resultsGen
+end
+
+function findBestCrossoverAndMutation(data, elitePercentage, crossoverRange, mutationRange, num)
+   resultsFit = ones(length(crossoverRange), length(mutationRange))
+   resultsGen = ones(length(crossoverRange), length(mutationRange))
+   for i in 1:length(crossoverRange)
+       crossoverPoint = crossoverRange[i]
+   for j in 1:length(mutationRange)
+       mutationPercentage = mutationRange[j]
+       dataCopy = deepcopy(data)
+       averageGen, averageFit = calculateAverage(dataCopy, elitePercentage, crossoverPoint, mutationPercentage, num)
+           resultsFit[i, j] = averageFit;
+           resultsGen[i, j] = averageGen;
+   end
+   end
+   coordinates = argmin(resultsFit)
+   minCrossoverIndex = coordinates[1]
+   minMutationIndex = coordinates[2]
+   optimalValue = resultsFit[minCrossoverIndex, minMutationIndex]
+   return minCrossoverIndex, minMutationIndex, optimalValue, resultsFit, resultsGen
+end
+    </code></pre>
+
+</body>
+</html>
